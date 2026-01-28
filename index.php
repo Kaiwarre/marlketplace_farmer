@@ -1,6 +1,8 @@
 <?php
 session_start();
+error_log("INDEX: Started");
 require_once 'includes/db.php';
+error_log("INDEX: DB included");
 
 // Handle Add to Cart
 if (isset($_POST['add_to_cart'])) {
@@ -65,7 +67,7 @@ $products = $stmt->fetchAll();
         <div class="products-grid">
             <?php foreach ($products as $product): ?>
                 <div class="product-card">
-                    <div class="product-image" style="background-image: url('<?= htmlspecialchars($product['image_url'] ?: 'img/placeholder.jpg') ?>'); background-size: cover; background-position: center;"></div>
+                    <div class="product-image" style="background-image: url('<?= htmlspecialchars($product['image_url'] ?: 'img/placeholder.svg') ?>'); background-size: cover; background-position: center;"></div>
                     <div class="product-info">
                         <div class="product-title"><?= htmlspecialchars($product['title']) ?></div>
                         <div class="product-category" style="font-size: 0.8em; color: #888;"><?= htmlspecialchars($product['category_name']) ?> • <?= htmlspecialchars($product['seller_name']) ?></div>

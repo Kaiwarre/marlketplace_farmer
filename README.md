@@ -25,7 +25,7 @@
 
 3. **Доступ к приложению:**
    Приложение будет доступно по адресу:
-   [http://localhost:8080](http://localhost:8080)
+   [http://localhost:8081](http://localhost:8081)
 
 ## Основные команды
 
@@ -50,7 +50,7 @@
    git add .
    git commit -m "Initial commit"
    git remote add origin <URL_ВАШЕГО_РЕПОЗИТОРИЯ>
-   git push -u origin main
+   git push -u origin main 
    ```
 3. На другом ПК клонируйте репозиторий:
    ```bash

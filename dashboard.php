@@ -51,22 +51,25 @@ $products = $stmt->fetchAll();
                         <th>Категория</th>
                         <th>Цена</th>
                         <th>Дата</th>
+                        <th></th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php foreach ($products as $product): ?>
                         <tr>
                             <td>
-                                <?php if ($product['image_url']): ?>
-                                    <img src="<?= htmlspecialchars($product['image_url']) ?>" alt="Product" style="width: 50px; height: 50px; object-fit: cover;">
-                                <?php else: ?>
-                                    Нет фото
-                                <?php endif; ?>
+                                <?php
+                                    $image_url = $product['image_url'] ?: 'img/placeholder.svg';
+                                ?>
+                                <img src="<?= htmlspecialchars($image_url) ?>" alt="Product" style="width: 50px; height: 50px; object-fit: cover;">
                             </td>
                             <td><?= htmlspecialchars($product['title']) ?></td>
                             <td><?= htmlspecialchars($product['category_name']) ?></td>
                             <td><?= number_format($product['price'], 0, '.', ' ') ?> сом</td>
                             <td><?= date('M j, Y', strtotime($product['created_at'])) ?></td>
+                            <td>
+                                <a href="edit_product.php?id=<?= $product['id'] ?>" class="btn" style="padding: 6px 10px; font-size: 0.9em;">Редактировать</a>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>

@@ -2,7 +2,6 @@
 session_start();
 require_once 'includes/db.php';
 
-// Check if user is seller
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'seller') {
     header("Location: index.php");
     exit;
@@ -10,6 +9,22 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'seller') {
 
 $error = '';
 $success = '';
+
+$product_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+if ($product_id <= 0) {
+    header("Location: dashboard.php");
+    exit;
+}
+
+// Fetch product and ensure ownership
+$stmt = $pdo->prepare("SELECT * FROM products WHERE id = ? AND user_id = ?");
+$stmt->execute([$product_id, $_SESSION['user_id']]);
+$product = $stmt->fetch();
+
+if (!$product) {
+    header("Location: dashboard.php");
+    exit;
+}
 
 // Fetch categories
 $categories = $pdo->query("SELECT * FROM categories")->fetchAll();
@@ -19,9 +34,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $description = $_POST['description'] ?? '';
     $price = $_POST['price'] ?? '';
     $category_id = $_POST['category_id'] ?? '';
-    
-    // Image Upload
-    $image_url = '';
+
+    $image_url = $product['image_url'] ?: 'img/placeholder.svg';
+
+    if (isset($_POST['remove_image'])) {
+        $image_url = 'img/placeholder.svg';
+    }
+
     if (isset($_FILES['image']) && $_FILES['image']['error'] === 0) {
         $upload_dir = __DIR__ . '/uploads/';
         $upload_url_base = 'uploads/';
@@ -60,14 +79,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (!$error && $title && $price && $category_id) {
-        if ($image_url === '') {
-            $image_url = 'img/placeholder.svg';
-        }
-        $stmt = $pdo->prepare("INSERT INTO products (user_id, category_id, title, description, price, image_url) VALUES (?, ?, ?, ?, ?, ?)");
-        if ($stmt->execute([$_SESSION['user_id'], $category_id, $title, $description, $price, $image_url])) {
-            $success = "Товар успешно добавлен!";
+        $stmt = $pdo->prepare("UPDATE products SET category_id = ?, title = ?, description = ?, price = ?, image_url = ? WHERE id = ? AND user_id = ?");
+        if ($stmt->execute([$category_id, $title, $description, $price, $image_url, $product_id, $_SESSION['user_id']])) {
+            $success = "Товар обновлён!";
+            $stmt = $pdo->prepare("SELECT * FROM products WHERE id = ? AND user_id = ?");
+            $stmt->execute([$product_id, $_SESSION['user_id']]);
+            $product = $stmt->fetch();
         } else {
-            $error = "Ошибка добавления товара.";
+            $error = "Ошибка обновления товара.";
         }
     } elseif (!$error) {
         $error = "Заполните все обязательные поля.";
@@ -79,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add Product - Farmers Market</title>
+    <title>Edit Product - Farmers Market</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -96,46 +115,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <div class="container">
         <div class="form-container">
-            <h2>Добавить товар</h2>
+            <h2>Редактировать товар</h2>
             <?php if ($error): ?>
                 <div class="alert alert-error"><?= $error ?></div>
             <?php endif; ?>
             <?php if ($success): ?>
                 <div class="alert alert-success"><?= $success ?> <a href="dashboard.php">Перейти в кабинет</a></div>
             <?php endif; ?>
-            
+
             <form method="POST" enctype="multipart/form-data">
                 <div class="form-group">
                     <label>Название *</label>
-                    <input type="text" name="title" required>
+                    <input type="text" name="title" value="<?= htmlspecialchars($product['title']) ?>" required>
                 </div>
-                
+
                 <div class="form-group">
                     <label>Категория *</label>
                     <select name="category_id" required>
                         <option value="">Выберите категорию</option>
                         <?php foreach ($categories as $cat): ?>
-                            <option value="<?= $cat['id'] ?>"><?= htmlspecialchars($cat['name']) ?></option>
+                            <option value="<?= $cat['id'] ?>" <?= $cat['id'] == $product['category_id'] ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($cat['name']) ?>
+                            </option>
                         <?php endforeach; ?>
                     </select>
                 </div>
 
                 <div class="form-group">
                     <label>Цена (сом) *</label>
-                    <input type="number" step="0.01" name="price" required>
+                    <input type="number" step="0.01" name="price" value="<?= htmlspecialchars($product['price']) ?>" required>
                 </div>
 
                 <div class="form-group">
                     <label>Описание</label>
-                    <textarea name="description" rows="4"></textarea>
+                    <textarea name="description" rows="4"><?= htmlspecialchars($product['description']) ?></textarea>
                 </div>
 
                 <div class="form-group">
-                    <label>Фото товара</label>
+                    <label>Текущее фото</label>
+                    <?php $current_image = $product['image_url'] ?: 'img/placeholder.svg'; ?>
+                    <div style="margin-bottom: 10px;">
+                        <img src="<?= htmlspecialchars($current_image) ?>" alt="Product" style="width: 120px; height: 120px; object-fit: cover; border-radius: 8px;">
+                    </div>
+                    <label><input type="checkbox" name="remove_image" value="1"> Удалить фото (поставить заглушку)</label>
+                </div>
+
+                <div class="form-group">
+                    <label>Новое фото</label>
                     <input type="file" name="image" accept="image/*">
                 </div>
 
-                <button type="submit" class="btn" style="width: 100%">Добавить товар</button>
+                <button type="submit" class="btn" style="width: 100%">Сохранить</button>
             </form>
         </div>
     </div>
